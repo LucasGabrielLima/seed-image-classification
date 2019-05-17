@@ -2,6 +2,10 @@ import cv2, os
 import numpy as np
 import matplotlib.pyplot as plt
 
+DEBUG = True
+
+#classes
+#----------------------------------------------------
 class DB:
 	data = []
 
@@ -37,6 +41,7 @@ class Image:
 	image = ''
 	name = ''
 	classification = ''
+	binarized = ''
 	features = ''
 
 	def __init__(self, name, classification, image):
@@ -44,13 +49,43 @@ class Image:
 		self.name = name
 		self.classification = classification
 
-#main
+#methods
 #----------------------------------------------------
+def show(image):
+	if(DEBUG):
+		cv2.imshow("img", image)
+		cv2.waitKey(10000000)
+
+# def bgRemoval(images):
+	# lower = np.array([126,126,126])  #-- Lower range --
+	# upper = np.array([127,127,127])  #-- Upper range --
+	# mask = cv2.inRange(img, lower, upper)
+	# res = cv2.bitwise_and(img, img, mask= mask)  #-- Contains pixels having the gray color--
+	# cv2.imshow('Result',res)
+
+def binarization(images):
+	for img in images:
+		img.binarized = threshold(img.image)
+
+def threshold(image):
+	new_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+	show(new_image)
+	ret,binary = cv2.threshold(new_image,105,255,cv2.THRESH_BINARY_INV)
+	show(binary)
+
+#====================================================
+#main
+#====================================================
 
 #Loads Database
 db = DB('./images')
 images = db.getData()
 
+#Segmentation
+# bgRemoval(images)
+
+#binarization(images)
+
 #Printing test
-# for image in images:
-	# print(image.name, image.classification)
+# for img in images:
+	# print(img.name, img.classification)
