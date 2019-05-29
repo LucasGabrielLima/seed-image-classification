@@ -15,6 +15,19 @@ for cnt in contours:
 	cv2.drawContours(img,[cnt],0,(0,255, 255),3)
 
 
+centres = []
+for i in range(len(contours)):
+	if cv2.contourArea(contours[i]) < 100:
+  		continue
+	moments = cv2.moments(contours[i])
+	if moments['m00'] != 0:
+		centres.append((int(moments['m10']/moments['m00']), int(moments['m01']/moments['m00'])))
+		cv2.circle(img, centres[-1], 3, (0, 255, 0), -1)
+
+print centres
+
+
+
 
 
 cv2.imshow('teste', img)
