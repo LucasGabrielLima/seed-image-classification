@@ -1,7 +1,7 @@
 import cv2, os
 import numpy as np
 import matplotlib.pyplot as plt
-
+import math
 DEBUG = True
 
 #classes
@@ -26,7 +26,7 @@ class DB:
 	def load_images_from_folder(self, folder, classification):
 		images = list()
 		files = os.listdir(folder)
-		for filename in files:
+		for filename in files[0:10]:
 			if any([filename.endswith(x) for x in ['.jpeg', '.jpg', '.JPG']]):
 				img = cv2.imread(os.path.join(folder, filename))
 				if img is not None:
@@ -56,22 +56,30 @@ def show(image):
 		cv2.imshow("img", image)
 		cv2.waitKey(10000000)
 
-# def bgRemoval(images):
-	# lower = np.array([126,126,126])  #-- Lower range --
-	# upper = np.array([127,127,127])  #-- Upper range --
-	# mask = cv2.inRange(img, lower, upper)
-	# res = cv2.bitwise_and(img, img, mask= mask)  #-- Contains pixels having the gray color--
-	# cv2.imshow('Result',res)
-
 def binarization(images):
 	for img in images:
-		img.binarized = threshold(img.image)
+		img = threshold(img.image)
 
 def threshold(image):
-	new_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+	(b, g, r ) = image[0][0]
+	show(image)
+	image = cv2.medianBlur(image, 3)
+	new_image = np.empty((image.shape[0], image.shape[1]), dtype=np.uint8)
+	print(image.shape[0], image.shape[1])
+	for i in range(0, image.shape[0]):
+		for j in range(0, image.shape[1]):
+			new_image[i][j] = 0 if compareColors((b, g, r), image[i][j]) else 255
 	show(new_image)
-	ret,binary = cv2.threshold(new_image,105,255,cv2.THRESH_BINARY_INV)
-	show(binary)
+	return new_image
+
+def compareColors(bg, color):
+	for i in (0, 2):
+		a = int(bg[i])
+		b = int(color[i])
+		if np.abs(b-a) > 40:
+			return False
+	return True
+
 
 #====================================================
 #main
@@ -80,11 +88,11 @@ def threshold(image):
 #Loads Database
 db = DB('./images')
 images = db.getData()
+print("Finished Loading Database")
 
 #Segmentation
-# bgRemoval(images)
-
-#binarization(images)
+binarization(images)
+print("Finished Binarization")
 
 #Printing test
 # for img in images:
