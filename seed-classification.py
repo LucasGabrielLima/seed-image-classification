@@ -2,7 +2,7 @@ import cv2, os
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-DEBUG = True
+DEBUG = False
 
 #classes
 #----------------------------------------------------
@@ -58,7 +58,7 @@ def show(image):
 
 def binarization(images):
 	for img in images:
-		img = threshold(img.image)
+		img.image = threshold(img.image)
 
 def threshold(image):
 	(b, g, r ) = image[0][0]
@@ -76,9 +76,44 @@ def compareColors(bg, color):
 	for i in (0, 2):
 		a = int(bg[i])
 		b = int(color[i])
-		if np.abs(b-a) > 40:
+		if np.abs(b-a) > 48:
 			return False
 	return True
+
+def segmentation(images):
+	for img in images:
+		aux = img.image.copy()
+
+		# Apenas para testes
+		countourImg = aux.copy() 
+		contours, hier = cv2.findContours(aux,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+
+		for cnt in contours:
+			# print('countour')
+			cv2.drawContours(countourImg,[cnt],0,(0,255, 255),3)
+
+		centres = []
+
+		for i in range(len(contours)):
+			if cv2.contourArea(contours[i]) < 100:
+		  		continue
+			moments = cv2.moments(contours[i])
+			if moments['m00'] != 0:
+				centres.append((int(moments['m10']/moments['m00']), int(moments['m01']/moments['m00'])))
+				cv2.circle(countourImg, centres[-1], 3, (0, 255, 0), -1)
+
+		print centres 
+
+		print img.name
+		cv2.imshow('teste', countourImg)
+		cv2.waitKey(0)
+
+
+
+
+
+
+
 
 
 #====================================================
@@ -93,6 +128,8 @@ print("Finished Loading Database")
 #Segmentation
 binarization(images)
 print("Finished Binarization")
+
+segmentation(images)
 
 #Printing test
 # for img in images:
