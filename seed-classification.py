@@ -1,6 +1,6 @@
 import cv2, os
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import math
 DEBUG = False
 
@@ -21,7 +21,7 @@ class DB:
 			images = self.load_images_from_folder(directory, name)
 			#appends images from folder to data
 			if len(images) > 0:
-				self.data = self.data + images	
+				self.data = self.data + images
 
 	def load_images_from_folder(self, folder, classification):
 		images = list()
@@ -69,7 +69,6 @@ def threshold(image):
 	for i in range(0, image.shape[0]):
 		for j in range(0, image.shape[1]):
 			new_image[i][j] = 0 if compareColors((b, g, r), image[i][j]) else 255
-	show(new_image)
 	return new_image
 
 def compareColors(bg, color):
@@ -85,27 +84,26 @@ def segmentation(images):
 		aux = img.image.copy()
 
 		# Apenas para testes
-		countourImg = aux.copy() 
-		contours, hier = cv2.findContours(aux,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+		countourImg = aux.copy()
+		contours, hier = cv2.findContours(img.image,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 
-		for cnt in contours:
-			# print('countour')
-			cv2.drawContours(countourImg,[cnt],0,(0,255, 255),3)
+		# for cnt in contours:
+		# 	# print('countour')
+		# 	cv2.drawContours(img.image,[cnt],0,(255,255, 255),3)
 
 		centres = []
 
-		for i in range(len(contours)):
-			if cv2.contourArea(contours[i]) < 100:
+		for cnt in contours:
+			if cv2.contourArea(cnt) < 1000:
 		  		continue
-			moments = cv2.moments(contours[i])
-			if moments['m00'] != 0:
-				centres.append((int(moments['m10']/moments['m00']), int(moments['m01']/moments['m00'])))
-				cv2.circle(countourImg, centres[-1], 3, (0, 255, 0), -1)
+			rect = cv2.minAreaRect(cnt)
+			box = cv2.boxPoints(rect)
+			box = np.int0(box)
+			cv2.drawContours(img.image,[box],0,(255,255,255),5)
 
-		print centres 
 
 		print img.name
-		cv2.imshow('teste', countourImg)
+		cv2.imshow('teste', img.image)
 		cv2.waitKey(0)
 
 
@@ -126,10 +124,10 @@ images = db.getData()
 print("Finished Loading Database")
 
 #Segmentation
-binarization(images)
+binarization(images[:5])
 print("Finished Binarization")
 
-segmentation(images)
+segmentation(images[:5])
 
 #Printing test
 # for img in images:
