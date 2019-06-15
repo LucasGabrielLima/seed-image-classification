@@ -43,6 +43,7 @@ class Image:
 	classification = ''
 	binarized = ''
 	features = ''
+	objects = [] # Array que guarda cada objeto recortado da imagem
 
 	def __init__(self, name, classification, image):
 		self.image = image
@@ -79,34 +80,76 @@ def compareColors(bg, color):
 			return False
 	return True
 
+def crop_minAreaRect(src, rect):
+
+    # # rotate img
+    # angle = rect[2]
+    # rows,cols = img.shape[0], img.shape[1]
+    # M = cv2.getRotationMatrix2D((cols,rows),angle,1)
+    # img_rot = cv2.warpAffine(img,M,(cols,rows))
+	#
+    # # rotate bounding box
+    # rect0 = (rect[0], rect[1], 0.0)
+    # box = cv2.boxPoints(rect0)
+    # pts = np.int0(cv2.transform(np.array([box]), M))[0]
+    # pts[pts < 0] = 0
+	#
+    # # crop
+    # img_crop = img_rot[pts[1][1]:pts[0][1],
+    #                    pts[1][0]:pts[2][0]]
+
+
+
+	 # Get center, size, and angle from rect
+    center, size, theta = rect
+    # Convert to int
+    center, size = tuple(map(int, center)), tuple(map(int, size))
+    # Get rotation matrix for rectangle
+    M = cv2.getRotationMatrix2D( center, theta, 1)
+    # Perform rotation on src image
+    dst = cv2.warpAffine(src, M, src.shape[:2])
+    out = cv2.getRectSubPix(dst, size, center)
+
+	# cv2.imshow('teste', out)
+    # cv2.waitKey(0)
+    return out
+
 def segmentation(images):
 	for img in images:
-		aux = img.image.copy()
-
-		# Apenas para testes
-		countourImg = aux.copy()
 		contours, hier = cv2.findContours(img.image,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 
-		# for cnt in contours:
-		# 	# print('countour')
-		# 	cv2.drawContours(img.image,[cnt],0,(255,255, 255),3)
-
-		centres = []
+		# print img.name
+		# cv2.imshow('teste', img.image)
+		# cv2.waitKey(0)
 
 		for cnt in contours:
 			if cv2.contourArea(cnt) < 500:
 		  		continue
 			rect = cv2.minAreaRect(cnt)
+
+			img_croped = crop_minAreaRect(img.image, rect)
+			img.objects.append(img_croped)
+
+			#Pra testar deteccao de objetos, descomentar linhas abaixo
 			box = cv2.boxPoints(rect)
 			box = np.int0(box)
 			cv2.drawContours(img.image,[box],0,(255,255,255),1)
 
 
+		# print img.name
+		# cv2.imshow('teste', img.image)
+		# cv2.waitKey(0)
+
+def test_cropping(images):
+	for img in images:
 		print img.name
+
 		cv2.imshow('teste', img.image)
 		cv2.waitKey(0)
 
-
+		for obj in img.objects:
+			cv2.imshow('teste', obj)
+			cv2.waitKey(0)
 
 
 
@@ -124,11 +167,11 @@ images = db.getData()
 print("Finished Loading Database")
 
 #Segmentation
-binarization(images)
+binarization(images[:3])
 print("Finished Binarization")
 
-segmentation(images)
-
+segmentation(images[:3])
+test_cropping(images[:3])
 #Printing test
 # for img in images:
 	# print(img.name, img.classification)
