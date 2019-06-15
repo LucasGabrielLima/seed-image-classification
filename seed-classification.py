@@ -75,7 +75,7 @@ def compareColors(bg, color):
 	for i in (0, 2):
 		a = int(bg[i])
 		b = int(color[i])
-		if np.abs(b-a) > 48:
+		if np.abs(b-a) > 60:
 			return False
 	return True
 
@@ -94,12 +94,12 @@ def segmentation(images):
 		centres = []
 
 		for cnt in contours:
-			if cv2.contourArea(cnt) < 1000:
+			if cv2.contourArea(cnt) < 500:
 		  		continue
 			rect = cv2.minAreaRect(cnt)
 			box = cv2.boxPoints(rect)
 			box = np.int0(box)
-			cv2.drawContours(img.image,[box],0,(255,255,255),5)
+			cv2.drawContours(img.image,[box],0,(255,255,255),1)
 
 
 		print img.name
@@ -124,10 +124,10 @@ images = db.getData()
 print("Finished Loading Database")
 
 #Segmentation
-binarization(images[:5])
+binarization(images)
 print("Finished Binarization")
 
-segmentation(images[:5])
+segmentation(images)
 
 #Printing test
 # for img in images:
