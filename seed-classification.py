@@ -45,7 +45,8 @@ class Image:
 	binarized = ''
 	pb = ''
 	features = ''
-	objects = [] # Array que guarda cada objeto recortado da imagem
+	objects = []
+	objects_bin = [] # Array que guarda cada objeto recortado da imagem
 
 	def __init__(self, name, classification, image):
 		self.image = image
@@ -119,7 +120,9 @@ def segmentation(images):
 			x, y, w, h = cv2.boundingRect(cnt)
 
 			img_croped = cropBoundingRect(img.pb, x, y, w, h)
+			img_crop_bin = cropBoundingRect(img.binarized, x, y, w, h)
 			img.objects.append(img_croped)
+			img.objects_bin.append(img_crop_bin)
 
 			#Pra testar deteccao de objetos, descomentar linhas abaixo
 			# box = cv2.boxPoints(rect)
@@ -151,17 +154,20 @@ def classification (images):
 		huMoments = []
 		cv2.imshow('teste', img.image)
 		cv2.waitKey(0)
-		for obj in img.objects:
+		for i in range(len(img.objects)):
+			obj = img.objects[i]
 			seg_binarization = cv2.adaptiveThreshold(obj,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
-			closing = cv2.morphologyEx(seg_binarization, cv2.MORPH_CLOSE, kernel)
+			seg_binarization = cv2.bitwise_and( seg_binarization, img.objects_bin[i])
+			seg_binarization = cv2.bitwise_or( seg_binarization, cv2.bitwise_not(img.objects_bin[i]))
+			# closing = cv2.morphologyEx(seg_binarization, cv2.MORPH_CLOSE, kernel)
 			cv2.imshow('teste', seg_binarization)
 			cv2.waitKey(0)
-			cv2.imshow('teste', closing)
-			cv2.waitKey(0)
-			moments = cv2.moments(closing)
+			# cv2.imshow('teste', seg_binarization)
+			# cv2.waitKey(0)
+			moments = cv2.moments(seg_binarization)
 			# print("moments")
 			# print(moments)
-			huMoment = cv2.HuMoments(closing)
+			huMoment = cv2.HuMoments(seg_binarization)
 			# print(huMoments)
 			# print(huMoments)
 
@@ -227,14 +233,14 @@ images = db.getData()
 print("Finished Loading Database")
 
 #Segmentation
-binarization(images[:1])
+binarization(images)
 print("Finished Binarization")
 
-segmentation(images[:1])
+segmentation(images)
 # test_cropping(images[:2])
 #Printing test
 # for img in images:
 	# print(img.name, img.classification)
 
 #Classification
-classification(images[:1])
+classification(images)
