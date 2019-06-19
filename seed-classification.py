@@ -1,6 +1,7 @@
 import cv2, os
 import numpy as np
-# import matplotlib.pyplot as plt
+import pandas as pd
+import matplotlib.pyplot as plt
 import math
 DEBUG = False
 
@@ -142,8 +143,77 @@ def test_cropping(images):
 			cv2.waitKey(0)
 
 
+def classification (images):
+	kernel = np.ones((2,2),np.uint8)
+	for img in images:
+		print img.name
 
+		huMoments = []
+		cv2.imshow('teste', img.image)
+		cv2.waitKey(0)
+		for obj in img.objects:
+			seg_binarization = cv2.adaptiveThreshold(obj,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
+			closing = cv2.morphologyEx(seg_binarization, cv2.MORPH_CLOSE, kernel)
+			cv2.imshow('teste', seg_binarization)
+			cv2.waitKey(0)
+			cv2.imshow('teste', closing)
+			cv2.waitKey(0)
+			moments = cv2.moments(closing)
+			# print("moments")
+			# print(moments)
+			huMoment = cv2.HuMoments(closing)
+			# print(huMoments)
+			# print(huMoments)
 
+			# Normalizacao
+			for i in range(0,7):
+  				huMoment[i] = -1* np.sign(1.0, huMoment[i]) * np.log10(np.abs(huMoment[i]))
+
+			huMoments.append(huMoment)
+
+	df = pd.DataFrame()
+
+	huMoments = np.array(huMoments)
+	for i in range(len(huMoments[0])):
+		df["HU{}".format(i+1)] = huMoments[:,i]
+
+	df.to_csv("huMoments.csv", encoding='utf-8',index = False)
+
+	data_set = pd.read_csv("HuMoments.csv", header=None, delimiter = ',')
+	# print data_set.tail()
+
+	X = data_set[range(3)]
+	X_normalized = normalize(X)
+	# print X
+	#declara classificador e treina
+	kmeans = KMeans(n_clusters=7, init = 'random', random_state=0, max_iter = 600)
+	kmeans.fit(X_normalized)
+	y_kmeans = kmeans.predict(X_normalized)
+
+	#adiciono coluna com o resultado do kmeans
+	data_set[8] = y_kmeans
+	print data_set
+	#silhouette_score = resultado entre -1 e 1.
+	#-1 indica que a clusterizacao deu errado
+	#0 indica overlapping cluster
+	#1 cluster top
+
+	print silhouette_score(X_normalized, kmeans.labels_, metric = 'euclidean')
+
+	plt.scatter(X_normalized[:,0], X_normalized[:,1], c=y_kmeans, s=20, cmap='viridis')
+
+	centers = kmeans.cluster_centers_
+	plt.scatter(centers[:, 0], centers[:, 1], c='red', s=150, alpha=0.5);
+
+	#tentativa para plotar k-means
+	# pl.figure('3 Cluster K-Means')
+	# pl.scatter(X[:, 0], X[:, 1], c=kmeans.labels_)
+	# pl.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s = 300, c = 'red', label = 'Centoids')
+
+	# plt.xlabel('Dividend Yield')
+	# plt.ylabel('Returns')
+	# plt.title('6 Cluster K-Means')
+	plt.show()
 
 
 
@@ -157,11 +227,14 @@ images = db.getData()
 print("Finished Loading Database")
 
 #Segmentation
-binarization(images)
+binarization(images[:1])
 print("Finished Binarization")
 
-segmentation(images)
-test_cropping(images)
+segmentation(images[:1])
+# test_cropping(images[:2])
 #Printing test
 # for img in images:
 	# print(img.name, img.classification)
+
+#Classification
+classification(images[:1])
