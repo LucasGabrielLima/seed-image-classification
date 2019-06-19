@@ -2,6 +2,10 @@ import cv2, os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+import sklearn.metrics as skm
+from sklearn.preprocessing import normalize
+from mpl_toolkits.mplot3d import axes3d
 import math
 DEBUG = False
 
@@ -46,6 +50,7 @@ class Image:
 	pb = ''
 	features = ''
 	objects = []
+	classificationObjects = []
 	objects_bin = [] # Array que guarda cada objeto recortado da imagem
 
 	def __init__(self, name, classification, image):
@@ -147,80 +152,54 @@ def test_cropping(images):
 
 
 def classification (images):
-	kernel = np.ones((2,2),np.uint8)
+	nomes = []
+	huMoments = []
 	for img in images:
-		print img.name
-
-		huMoments = []
-		cv2.imshow('teste', img.image)
-		cv2.waitKey(0)
 		for i in range(len(img.objects)):
 			obj = img.objects[i]
 			seg_binarization = cv2.adaptiveThreshold(obj,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,11,2)
 			seg_binarization = cv2.bitwise_and( seg_binarization, img.objects_bin[i])
 			seg_binarization = cv2.bitwise_or( seg_binarization, cv2.bitwise_not(img.objects_bin[i]))
-			# closing = cv2.morphologyEx(seg_binarization, cv2.MORPH_CLOSE, kernel)
-			cv2.imshow('teste', seg_binarization)
-			cv2.waitKey(0)
-			# cv2.imshow('teste', seg_binarization)
-			# cv2.waitKey(0)
-			moments = cv2.moments(seg_binarization)
-			# print("moments")
-			# print(moments)
-			huMoment = cv2.HuMoments(seg_binarization)
-			# print(huMoments)
-			# print(huMoments)
-
-			# Normalizacao
-			for i in range(0,7):
-  				huMoment[i] = -1* np.sign(1.0, huMoment[i]) * np.log10(np.abs(huMoment[i]))
-
-			huMoments.append(huMoment)
-
-	df = pd.DataFrame()
+			huMoments.append(calculaMomentosHu(seg_binarization))
+			nomes.append(img.name)
 
 	huMoments = np.array(huMoments)
-	for i in range(len(huMoments[0])):
-		df["HU{}".format(i+1)] = huMoments[:,i]
+	huMoments = normalize(huMoments)
+	models = KMeans(n_clusters=7)
+	modelsOutput = models.fit(huMoments)
+	labels = models.predict(huMoments)
+	cent = modelsOutput.cluster_centers_
 
-	df.to_csv("huMoments.csv", encoding='utf-8',index = False)
+	print("Score da silhueta"+ skm.silhouette_score(huMoments, labels))
 
-	data_set = pd.read_csv("HuMoments.csv", header=None, delimiter = ',')
-	# print data_set.tail()
-
-	X = data_set[range(3)]
-	X_normalized = normalize(X)
-	# print X
-	#declara classificador e treina
-	kmeans = KMeans(n_clusters=7, init = 'random', random_state=0, max_iter = 600)
-	kmeans.fit(X_normalized)
-	y_kmeans = kmeans.predict(X_normalized)
-
-	#adiciono coluna com o resultado do kmeans
-	data_set[8] = y_kmeans
-	print data_set
-	#silhouette_score = resultado entre -1 e 1.
-	#-1 indica que a clusterizacao deu errado
-	#0 indica overlapping cluster
-	#1 cluster top
-
-	print silhouette_score(X_normalized, kmeans.labels_, metric = 'euclidean')
-
-	plt.scatter(X_normalized[:,0], X_normalized[:,1], c=y_kmeans, s=20, cmap='viridis')
-
-	centers = kmeans.cluster_centers_
-	plt.scatter(centers[:, 0], centers[:, 1], c='red', s=150, alpha=0.5);
-
-	#tentativa para plotar k-means
-	# pl.figure('3 Cluster K-Means')
-	# pl.scatter(X[:, 0], X[:, 1], c=kmeans.labels_)
-	# pl.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s = 300, c = 'red', label = 'Centoids')
-
-	# plt.xlabel('Dividend Yield')
-	# plt.ylabel('Returns')
-	# plt.title('6 Cluster K-Means')
+	fig = plt.figure()
+	ax = fig.add_subplot(1,1,1, projection='3d')
+	# if(DEBUG):
+	# verificaMelhorGrafico(huMoments, labels, cent)
+	ax.scatter(huMoments[:,4], huMoments[:,6], huMoments[:,5], c=labels)
+	ax.scatter(cent[:,4], cent[:,6], cent[:,5], c='red', marker="*")
 	plt.show()
 
+	#
+	# for img in images:
+	# 	for i in range(len(img.objects)):
+	# 		img.classificationObjects.append(labels[i])
+	# 	print(img.name)
+	# 	print(img.classificationObjects)
+	# 	print("**********************")
+
+def calculaMomentosHu(image):
+	huMoment = cv2.HuMoments(cv2.moments(image)).flatten()
+	huMoment = map(lambda hu: -1 * np.sign(hu) * np.log10(np.abs(hu)), huMoment)
+	return huMoment
+
+def verificaMelhorGrafico(huMoments, labels, cent):
+	for i in range(0,3):
+		for j in range(0,3):
+			print(i,j)
+			plt.scatter(huMoments[:,i], huMoments[:,j], c=labels)
+			plt.scatter(cent[:,i], cent[:,j], c='red', marker="*")
+			plt.show()
 
 
 #====================================================
@@ -236,8 +215,8 @@ print("Finished Loading Database")
 binarization(images)
 print("Finished Binarization")
 
-segmentation(images)
 # test_cropping(images[:2])
+segmentation(images)
 #Printing test
 # for img in images:
 	# print(img.name, img.classification)
